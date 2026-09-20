@@ -1,0 +1,2 @@
+# Local-only secrets go here when connectors are added.
+# Never commit .dev.vars.
