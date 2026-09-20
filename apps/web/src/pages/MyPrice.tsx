@@ -1,0 +1,7 @@
+import { useState } from 'react'
+import { ArrowRight, CheckCircle2, Store, Zap } from 'lucide-react'
+
+export default function MyPrice(){
+  const [sent,setSent]=useState(false)
+  return <section className="container page narrow"><div className="page-title"><span>💸 Reverse Marketplace</span><h1>Назви свою ціну</h1><p>Ти кажеш, що хочеш купити і скільки готовий заплатити. Магазини надсилають кращі пропозиції.</p></div>{!sent?<div className="request-card"><label>Що хочеш купити?<input placeholder="Наприклад: Samsung Galaxy S26 256GB" defaultValue="Apple iPhone 18 Pro 256GB"/></label><div className="form-grid"><label>Твій бюджет<input type="number" defaultValue="48000"/></label><label>Коли готовий купити?<select defaultValue="today"><option value="today">Сьогодні</option><option>За 3 дні</option><option>Цього тижня</option></select></label></div><label>Коментар<textarea placeholder="Колір, доставка, гарантія…"/></label><button className="primary-btn wide" onClick={()=>setSent(true)}>Запустити торги <ArrowRight size={18}/></button><p className="form-note">Безкоштовно для покупця. Магазини не бачать твої контактні дані до прийняття пропозиції.</p></div>:<div className="success-card"><CheckCircle2 size={46}/><h2>Запит опубліковано</h2><p>Ми покажемо його магазинам. Нові пропозиції з'являться тут.</p><div className="seller-offers"><div><Store/><span><b>Store A</b>48 900 грн · доставка 0 грн</span></div><div className="best"><Zap/><span><b>Store B</b>47 750 грн · доставка завтра</span></div></div></div>}</section>
+}

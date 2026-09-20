@@ -1,0 +1,13 @@
+{
+  "name": "vyhidno",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["apps/web", "apps/api"],
+  "scripts": {
+    "dev:web": "npm --workspace @vyhidno/web run dev",
+    "dev:api": "npm --workspace @vyhidno/api run dev",
+    "build": "npm --workspace @vyhidno/web run build",
+    "deploy:api": "npm --workspace @vyhidno/api run deploy",
+    "deploy:web": "npm --workspace @vyhidno/web run deploy"
+  }
+}

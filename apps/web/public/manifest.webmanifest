@@ -1,0 +1,10 @@
+{
+  "name": "VYHIDNO",
+  "short_name": "VYHIDNO",
+  "description": "Shopping assistant: ціни, знижки, DealMap і твоя ціна.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f8fa",
+  "theme_color": "#101828",
+  "lang": "uk"
+}
