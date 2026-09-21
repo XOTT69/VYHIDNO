@@ -124,6 +124,8 @@ npm run verify
 - `POST /api/ingest/offer` (secret)
 - `POST /api/admin/recalculate` (secret)
 
+Доступні джерела даних, офіційні способи отримання feed-ів і запуск універсального XML/YML/CSV імпортера описані в [`docs/DATA-SOURCES.md`](docs/DATA-SOURCES.md).
+
 ## Межі MVP
 
 Автоматичні Telegram/Web Push повідомлення та кабінет продавця потребують окремих провайдерів і автентифікації. Дані й API для watchlist та seller offers уже готові, але жоден канал сповіщень не імітується у UI.
