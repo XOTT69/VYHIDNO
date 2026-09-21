@@ -15,8 +15,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+      - run: npm ci
       - run: npm run build
+        env:
+          VITE_API_BASE: ${{ vars.VITE_API_BASE }}
       - name: Deploy Cloudflare Pages
         run: npx wrangler pages deploy apps/web/dist --project-name vyhidno-web
         env:

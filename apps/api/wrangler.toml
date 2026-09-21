@@ -2,10 +2,13 @@ name = "vyhidno-api"
 main = "src/index.ts"
 compatibility_date = "2026-09-01"
 
+[triggers]
+crons = ["15 */6 * * *"]
+
 [[d1_databases]]
 binding = "DB"
 database_name = "vyhidno-db"
 database_id = "REPLACE_WITH_D1_DATABASE_ID"
 
 [vars]
-APP_ORIGIN = "http://localhost:5173"
+APP_ORIGIN = "http://localhost:5173,https://vyhidno-web.pages.dev"
