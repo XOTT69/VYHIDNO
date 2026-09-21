@@ -1,11 +1,13 @@
 # VYHIDNO
 
-Український shopping assistant: актуальні пропозиції, перевірка реальності знижки, історія ціни, DealMap, watchlist і reverse marketplace «Назви свою ціну».
+Український shopping assistant для порівняння пропозицій, перевірки знижок, історії ціни, DealMap, watchlist і запитів «Назви свою ціну».
 
 Production:
 
 - Web: https://vyhidno-web.pages.dev
 - API: https://vyhidno-api.ai-beta69690.workers.dev
+
+Зараз у production є чотири перевірені сторінки конкретних товарів без цін. Реальні ціни, знижки та відповіді продавців з’являться після підключення партнерського feed/API; сайт не видає демонстраційні значення за актуальні.
 
 ## Що працює
 
@@ -14,10 +16,12 @@ Production:
 - Сторінка товару: найкраща пропозиція, доставка, історія, 30-денне середнє і 180-денний мінімум.
 - DealMap з геолокацією, радіусом і відстанню до магазину.
 - Watchlist на рівні анонімного device ID: додавання, зміна цільової ціни, список і видалення.
-- «Назви свою ціну»: створення запиту та отримання пропозицій продавців.
+- «Назви свою ціну»: створення запиту та API для отримання пропозицій продавців після їх підключення.
 - Захищений ingest endpoint з matching у порядку GTIN → brand+MPN → brand+model → створення canonical product.
 - Автоматичний перерахунок score після ingest і Cloudflare Cron кожні 6 годин.
 - PWA shell без кешування API-відповідей.
+- Зовнішні кнопки ведуть на конкретний товар; головна сторінка магазину відхиляється при імпорті.
+- Ціни старші за 48 годин не показуються як актуальні. Демонстраційні офери вилучені, але чотири підтверджені сторінки товарів лишаються у каталозі без вигаданих цін.
 
 ## Стек
 
@@ -103,6 +107,8 @@ npm run verify
    npm run db:remote
    ```
 
+   Wrangler запам'ятовує застосовані міграції: повторний запуск не дублює seed чи зміни схеми.
+
 4. Додайте secret:
 
    ```bash
@@ -112,6 +118,8 @@ npm run verify
 5. Додайте custom web domain до `APP_ORIGIN` у `wrangler.toml`, якщо використовуєте не лише `vyhidno-web.pages.dev`.
 6. Production API URL збережений у `apps/web/.env.production`; за потреби його можна перевизначити repository variable `VITE_API_BASE`.
 7. Для GitHub Actions потрібні repository secrets `CLOUDFLARE_API_TOKEN` та `CLOUDFLARE_ACCOUNT_ID`.
+
+Ручний `npm --workspace @vyhidno/web run deploy` завантажує web у production-гілку Pages (`main`), навіть якщо локальна Git-гілка інша.
 
 `wrangler.toml` уже містить ID production D1 `vyhidno-db`. Для повторного CI/CD deploy потрібно додати до GitHub Actions secrets `CLOUDFLARE_API_TOKEN` і `CLOUDFLARE_ACCOUNT_ID`; локальна версія також повністю запускається на D1 local.
 

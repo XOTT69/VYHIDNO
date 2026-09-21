@@ -89,7 +89,7 @@ function normalizeOffer(item) {
   const name = pick(item, ['name','title','model','назва','товар'])
   const url = pick(item, ['url','link','external_url','посилання'])
   const price = numeric(pick(item, ['price','priceuah','ціна']))
-  if (!externalSku || !name || !url || !price) return null
+  if (!externalSku || !name || !isProductUrl(url) || !price) return null
   const available = pick(item, ['@_available','available','availability','наявність'])
   return {
     store: { name: storeName, domain: storeDomain },
@@ -126,4 +126,12 @@ function numeric(value) {
   if (!value) return undefined
   const number = Number(String(value).replace(/\s/g, '').replace(',', '.').replace(/[^0-9.-]/g, ''))
   return Number.isFinite(number) && number > 0 ? number : undefined
+}
+
+function isProductUrl(value) {
+  try {
+    const url = new URL(value)
+    const path = url.pathname.replace(/\/+$/, '')
+    return url.protocol === 'https:' && !url.username && !url.password && path.length > 1 && !/^\/(uk|ua|ru|en|shop|catalog|products|categories|category|deals|sale)$/i.test(path)
+  } catch { return false }
 }

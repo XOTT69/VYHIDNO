@@ -11,6 +11,8 @@ export type Deal = {
   old_price?: number
   delivery_price?: number
   external_url?: string
+  reference_url?: string
+  reference_store?: string
   store_name?: string
   score: number
   avg_30?: number
@@ -22,7 +24,7 @@ export type Deal = {
   distance_km?: number | null
 }
 
-export type ProductSummary = Deal
+export type ProductSummary = Omit<Deal, 'price' | 'score'> & { price?: number; score?: number }
 
 export type ProductDetails = {
   product: {
@@ -35,6 +37,8 @@ export type ProductDetails = {
     category?: string
     image_url?: string
     description?: string
+    reference_url?: string
+    reference_store?: string
   }
   offers: Array<{
     id: string
@@ -43,6 +47,7 @@ export type ProductDetails = {
     old_price?: number
     delivery_price: number
     external_url: string
+    checked_at?: string
     availability: 'in_stock' | 'out_of_stock' | 'preorder' | 'unknown'
     reliability_score: number
     score?: number

@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { BadgePercent, Heart, Home, MapPinned, Tags } from 'lucide-react'
+import { BadgePercent, Heart, Home, MapPinned, Search, Tags } from 'lucide-react'
 import { Logo } from './Logo'
 
 const nav = [
@@ -12,7 +12,7 @@ const nav = [
 
 export default function Layout(){
   return <div className="app-shell">
-    <header className="topbar"><NavLink to="/" aria-label="VYHIDNO — головна"><Logo/></NavLink><div className="top-actions"><NavLink className="ghost-btn" to="/my-price">Назвати свою ціну</NavLink><NavLink className="avatar" to="/saved" aria-label="Мої товари">М</NavLink></div></header>
+    <header className="site-header"><div className="topbar"><NavLink to="/" aria-label="VYHIDNO — головна"><Logo/></NavLink><nav className="desktop-nav" aria-label="Основна навігація"><NavLink to="/deals">Знижки</NavLink><NavLink to="/map">Поруч</NavLink><NavLink to="/my-price">Моя ціна</NavLink></nav><div className="top-actions"><NavLink className="search-shortcut" to="/search" aria-label="Пошук"><Search size={19}/><span>Знайти товар</span></NavLink><NavLink className="saved-shortcut" to="/saved" aria-label="Збережені товари"><Heart size={19}/></NavLink></div></div></header>
     <main><Outlet/></main>
     <nav className="bottom-nav">{nav.map(({to,label,icon:Icon}) => <NavLink key={to} to={to} end={to==='/' } className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}><Icon size={21}/><span>{label}</span></NavLink>)}</nav>
   </div>
