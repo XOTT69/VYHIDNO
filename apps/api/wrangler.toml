@@ -8,7 +8,7 @@ crons = ["15 */6 * * *"]
 [[d1_databases]]
 binding = "DB"
 database_name = "vyhidno-db"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "911eee20-ab60-4ff5-82d9-a6ef0306cc78"
 
 [vars]
 APP_ORIGIN = "http://localhost:5173,https://vyhidno-web.pages.dev"

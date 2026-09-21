@@ -2,6 +2,11 @@
 
 Український shopping assistant: актуальні пропозиції, перевірка реальності знижки, історія ціни, DealMap, watchlist і reverse marketplace «Назви свою ціну».
 
+Production:
+
+- Web: https://vyhidno-web.pages.dev
+- API: https://vyhidno-api.ai-beta69690.workers.dev
+
 ## Що працює
 
 - Пошук за назвою, брендом, моделлю, GTIN/EAN і MPN.
@@ -105,7 +110,7 @@ npm run verify
    ```
 
 5. Додайте custom web domain до `APP_ORIGIN` у `wrangler.toml`, якщо використовуєте не лише `vyhidno-web.pages.dev`.
-6. Для Pages задайте `VITE_API_BASE=https://<worker>.workers.dev`. Для GitHub Actions це repository variable `VITE_API_BASE`.
+6. Production API URL збережений у `apps/web/.env.production`; за потреби його можна перевизначити repository variable `VITE_API_BASE`.
 7. Для GitHub Actions потрібні repository secrets `CLOUDFLARE_API_TOKEN` та `CLOUDFLARE_ACCOUNT_ID`.
 
 `wrangler.toml` навмисно містить placeholder замість чужого D1 ID. Без Cloudflare account/token production deploy виконати неможливо, але локальна версія повністю запускається на D1 local.
