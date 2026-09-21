@@ -113,7 +113,7 @@ npm run verify
 6. Production API URL збережений у `apps/web/.env.production`; за потреби його можна перевизначити repository variable `VITE_API_BASE`.
 7. Для GitHub Actions потрібні repository secrets `CLOUDFLARE_API_TOKEN` та `CLOUDFLARE_ACCOUNT_ID`.
 
-`wrangler.toml` навмисно містить placeholder замість чужого D1 ID. Без Cloudflare account/token production deploy виконати неможливо, але локальна версія повністю запускається на D1 local.
+`wrangler.toml` уже містить ID production D1 `vyhidno-db`. Для повторного CI/CD deploy потрібно додати до GitHub Actions secrets `CLOUDFLARE_API_TOKEN` і `CLOUDFLARE_ACCOUNT_ID`; локальна версія також повністю запускається на D1 local.
 
 ## API
 
