@@ -7,6 +7,9 @@
     "dev:web": "npm --workspace @vyhidno/web run dev",
     "dev:api": "npm --workspace @vyhidno/api run dev",
     "build": "npm --workspace @vyhidno/web run build",
+    "typecheck": "npm --workspace @vyhidno/api run typecheck && npm --workspace @vyhidno/web run build",
+    "db:local": "npm --workspace @vyhidno/api run db:local",
+    "verify": "npm run typecheck",
     "deploy:api": "npm --workspace @vyhidno/api run deploy",
     "deploy:web": "npm --workspace @vyhidno/web run deploy"
   }

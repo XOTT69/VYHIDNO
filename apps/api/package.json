@@ -6,11 +6,17 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "db:local": "wrangler d1 execute vyhidno-db --local --file=./migrations/0001_init.sql"
+    "typecheck": "tsc --noEmit",
+    "db:local": "wrangler d1 migrations apply vyhidno-db --local",
+    "db:remote": "wrangler d1 migrations apply vyhidno-db --remote",
+    "import:feed": "node scripts/import-feed.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "latest",
     "typescript": "latest",
     "wrangler": "latest"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.11.1"
   }
 }
