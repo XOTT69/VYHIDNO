@@ -78,6 +78,7 @@
   }
   .btn-save { background: #2d6cdf; color: #fff; }
   .btn-clear { background: #3a1d1d; color: #ff9b9b; }
+  .hint { font-size: 11px; color: #6a6a73; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -101,10 +102,11 @@
 <dialog id="settingsDialog">
   <h3 style="margin:0 0 4px">Налаштування</h3>
 
-  <label>Пароль доступу (x-app-secret)</label>
-  <input type="password" id="secretInput" placeholder="твій пароль">
+  <label>LUMI API ключ (sk-...)</label>
+  <input type="password" id="apiKeyInput" placeholder="sk-xxxxxxxx-xxxx-...">
+  <div class="hint">Зберігається лише локально в цьому браузері, нікуди не відправляється крім LUMI.</div>
 
-  <label>Модель (через LUMI gateway)</label>
+  <label>Модель</label>
   <select id="modelSelect">
     <optgroup label="Claude">
       <option value="claude-haiku-5.5">Claude Haiku 5.5</option>
@@ -114,8 +116,8 @@
       <option value="claude-opus-4.8">Claude Opus 4.8</option>
       <option value="claude-opus-5">Claude Opus 5</option>
       <option value="claude-sonnet-4.6">Claude Sonnet 4.6</option>
-      <option value="claude-sonnet-5" selected>Claude Sonnet 5 (за замовчуванням)</option>
-      <option value="claude-sonnet-5.5">Claude Sonnet 5.5</option>
+      <option value="claude-sonnet-5">Claude Sonnet 5</option>
+      <option value="claude-sonnet-5.5" selected>Claude Sonnet 5.5 (за замовчуванням)</option>
     </optgroup>
     <optgroup label="GPT">
       <option value="gpt-5.6-luna">GPT 5.6 Luna</option>
@@ -131,9 +133,7 @@
       <option value="deepseek-v4.1-flash">Deepseek V4.1 Flash</option>
     </optgroup>
   </select>
-  <div style="font-size:11px;color:#6a6a73;margin-top:4px">
-    Якщо модель видасть помилку — звір точний слаг у LUMI → LLM Маркетплейс
-  </div>
+  <div class="hint">Якщо модель видасть помилку — звір точний слаг у LUMI → LLM Маркетплейс.</div>
 
   <label>Системний промпт</label>
   <textarea id="systemPromptInput" rows="4" placeholder="Напр.: Відповідай українською, коротко і по суті."></textarea>
@@ -145,24 +145,30 @@
 </dialog>
 
 <script>
+// ВАЖЛИВО: тут немає власного backend-проксі.
+// Браузер телефону звертається до LUMI НАПРЯМУ — тому телефон має бути
+// підключений до корпоративного VPN monobank, інакше DNS lumi.monobank.com.ua
+// не резолвиться (та сама помилка ENOTFOUND, що й була на Vercel).
+const LUMI_BASE_URL = 'https://lumi.monobank.com.ua'; // без кінцевого слеша
+
 const messagesEl = document.getElementById('messages');
 const inputEl = document.getElementById('input');
 const sendBtn = document.getElementById('sendBtn');
 const settingsBtn = document.getElementById('settingsBtn');
 const settingsDialog = document.getElementById('settingsDialog');
-const secretInput = document.getElementById('secretInput');
+const apiKeyInput = document.getElementById('apiKeyInput');
 const systemPromptInput = document.getElementById('systemPromptInput');
 const modelSelect = document.getElementById('modelSelect');
 const currentModelTag = document.getElementById('currentModelTag');
 
 let history = JSON.parse(localStorage.getItem('chat_history') || '[]');
-let secret = localStorage.getItem('app_secret') || '';
+let apiKey = localStorage.getItem('lumi_api_key') || '';
 let systemPrompt = localStorage.getItem('system_prompt') || 'Ти корисний AI-асистент. Відповідай українською.';
-let model = localStorage.getItem('model') || 'claude-sonnet-5';
+let model = localStorage.getItem('model') || 'claude-sonnet-5.5';
 
 function saveState() {
   localStorage.setItem('chat_history', JSON.stringify(history));
-  localStorage.setItem('app_secret', secret);
+  localStorage.setItem('lumi_api_key', apiKey);
   localStorage.setItem('system_prompt', systemPrompt);
   localStorage.setItem('model', model);
 }
@@ -190,7 +196,7 @@ function appendBubble(role, text, extraClass = '') {
 async function sendMessage() {
   const text = inputEl.value.trim();
   if (!text) return;
-  if (!secret) {
+  if (!apiKey) {
     settingsDialog.showModal();
     return;
   }
@@ -205,34 +211,36 @@ async function sendMessage() {
   sendBtn.disabled = true;
 
   try {
-    const res = await fetch('/api/chat', {
+    const res = await fetch(`${LUMI_BASE_URL}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-app-secret': secret
+        Authorization: `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         model,
-        system: systemPrompt,
-        messages: history
+        messages: [{ role: 'system', content: systemPrompt }, ...history],
+        temperature: 0.7
       })
     });
 
     typingBubble.remove();
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      appendBubble('error', `Помилка: ${err.error || res.status}`);
+      const errText = await res.text().catch(() => '');
+      appendBubble('error', `Помилка ${res.status}: ${errText.slice(0, 200)}`);
       return;
     }
 
     const data = await res.json();
-    history.push({ role: 'assistant', content: data.reply });
-    appendBubble('assistant', data.reply);
+    const reply = data.choices?.[0]?.message?.content ?? '(порожня відповідь)';
+    history.push({ role: 'assistant', content: reply });
+    appendBubble('assistant', reply);
     saveState();
   } catch (e) {
     typingBubble.remove();
-    appendBubble('error', 'Немає з\'єднання. Перевір VPN і спробуй ще раз.');
+    // Якщо тут CORS — побачиш у консолі Safari "Failed to fetch" / CORS policy.
+    appendBubble('error', 'Немає з\'єднання з LUMI. Перевір VPN на телефоні, або це CORS-блокування (див. консоль).');
   } finally {
     sendBtn.disabled = false;
   }
@@ -251,14 +259,14 @@ inputEl.addEventListener('input', () => {
 });
 
 settingsBtn.addEventListener('click', () => {
-  secretInput.value = secret;
+  apiKeyInput.value = apiKey;
   systemPromptInput.value = systemPrompt;
   modelSelect.value = model;
   settingsDialog.showModal();
 });
 
 document.getElementById('saveSettingsBtn').addEventListener('click', () => {
-  secret = secretInput.value.trim();
+  apiKey = apiKeyInput.value.trim();
   systemPrompt = systemPromptInput.value.trim() || systemPrompt;
   model = modelSelect.value;
   saveState();
