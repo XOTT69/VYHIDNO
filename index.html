@@ -1,57 +1,288 @@
-// Єдиний serverless proxy — ВСІ моделі (Claude/GPT/DeepSeek) йдуть через
-// один LUMI gateway, OpenAI-сумісний формат. Ключ живе тільки тут, на сервері.
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Мій AI чат</title>
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+<link rel="manifest" href="/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f0f13">
+<link rel="apple-touch-icon" href="https://api.iconify.design/mdi/robot.svg?color=%23ffffff&width=180">
+
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; height: 100%; background: #0f0f13; color: #eaeaea;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  #app {
+    display: flex; flex-direction: column; height: 100vh;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  header {
+    padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid #23232b; flex-shrink: 0;
+  }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header .modelTag { font-size: 11px; color: #8a8a93; margin-top: 2px; }
+  header button {
+    background: none; border: none; color: #8a8a93; font-size: 20px; padding: 4px 8px; cursor: pointer;
+  }
+  #messages {
+    flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .msg {
+    max-width: 85%; padding: 10px 14px; border-radius: 16px; line-height: 1.45;
+    font-size: 15px; white-space: pre-wrap; word-wrap: break-word;
+  }
+  .msg.user { align-self: flex-end; background: #2d6cdf; color: #fff; border-bottom-right-radius: 4px; }
+  .msg.assistant { align-self: flex-start; background: #1d1d24; border-bottom-left-radius: 4px; }
+  .msg.error { align-self: center; background: #4a1d1d; color: #ff9b9b; font-size: 13px; }
+  .msg.typing { align-self: flex-start; background: #1d1d24; color: #8a8a93; font-style: italic; }
+
+  #inputBar {
+    display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid #23232b; flex-shrink: 0;
+    background: #0f0f13;
+  }
+  #inputBar textarea {
+    flex: 1; resize: none; border-radius: 18px; border: 1px solid #2b2b33;
+    background: #1a1a20; color: #eaeaea; padding: 10px 14px; font-size: 15px;
+    max-height: 120px; line-height: 1.3; font-family: inherit;
+  }
+  #inputBar textarea:focus { outline: none; border-color: #2d6cdf; }
+  #sendBtn {
+    background: #2d6cdf; border: none; color: #fff; border-radius: 50%;
+    width: 42px; height: 42px; flex-shrink: 0; font-size: 18px; cursor: pointer;
+  }
+  #sendBtn:disabled { opacity: 0.5; }
+
+  dialog {
+    border: none; border-radius: 14px; background: #1a1a20; color: #eaeaea;
+    width: 90%; max-width: 360px; padding: 20px; max-height: 80vh; overflow-y: auto;
+  }
+  dialog::backdrop { background: rgba(0,0,0,0.6); }
+  dialog label { font-size: 13px; color: #8a8a93; display: block; margin-bottom: 6px; margin-top: 14px; }
+  dialog textarea, dialog input, dialog select {
+    width: 100%; background: #0f0f13; border: 1px solid #2b2b33; color: #eaeaea;
+    border-radius: 8px; padding: 8px 10px; font-size: 14px; font-family: inherit;
+  }
+  dialog optgroup { color: #8a8a93; font-style: normal; }
+  dialog option { color: #eaeaea; background: #0f0f13; }
+  dialog .row { display: flex; gap: 10px; margin-top: 20px; }
+  dialog button {
+    flex: 1; padding: 10px; border-radius: 8px; border: none; font-size: 14px; cursor: pointer;
+  }
+  .btn-save { background: #2d6cdf; color: #fff; }
+  .btn-clear { background: #3a1d1d; color: #ff9b9b; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div>
+      <h1>🤖 Мій AI чат</h1>
+      <div class="modelTag" id="currentModelTag">Claude Sonnet 5.5</div>
+    </div>
+    <button id="settingsBtn">⚙️</button>
+  </header>
+
+  <div id="messages"></div>
+
+  <div id="inputBar">
+    <textarea id="input" rows="1" placeholder="Напиши повідомлення..."></textarea>
+    <button id="sendBtn">➤</button>
+  </div>
+</div>
+
+<dialog id="settingsDialog">
+  <h3 style="margin:0 0 4px">Налаштування</h3>
+
+  <label>Пароль доступу (x-app-secret)</label>
+  <input type="password" id="secretInput" placeholder="твій пароль">
+
+  <label>Модель (через LUMI gateway)</label>
+  <select id="modelSelect">
+    <optgroup label="Claude">
+      <option value="claude-haiku-5.5">Claude Haiku 5.5</option>
+      <option value="claude-haiku-4.5">Claude Haiku 4.5</option>
+      <option value="claude-opus-4.6">Claude Opus 4.6</option>
+      <option value="claude-opus-4.7">Claude Opus 4.7</option>
+      <option value="claude-opus-4.8">Claude Opus 4.8</option>
+      <option value="claude-opus-5">Claude Opus 5</option>
+      <option value="claude-sonnet-4.6">Claude Sonnet 4.6</option>
+      <option value="claude-sonnet-5" selected>Claude Sonnet 5 (за замовчуванням)</option>
+      <option value="claude-sonnet-5.5">Claude Sonnet 5.5</option>
+    </optgroup>
+    <optgroup label="GPT">
+      <option value="gpt-5.6-luna">GPT 5.6 Luna</option>
+      <option value="gpt-5.6-sol">GPT 5.6 Sol</option>
+      <option value="gpt-5.6-terra">GPT 5.6 Terra</option>
+      <option value="gpt-astra-6">GPT Astra 6</option>
+      <option value="gpt-luna-6">GPT Luna 6</option>
+      <option value="gpt-6-sol">GPT-6 Sol</option>
+      <option value="gpt-6.1-sol">GPT-6.1 Sol</option>
+    </optgroup>
+    <optgroup label="DeepSeek">
+      <option value="deepseek-v4-flash">Deepseek V4 Flash</option>
+      <option value="deepseek-v4.1-flash">Deepseek V4.1 Flash</option>
+    </optgroup>
+  </select>
+  <div style="font-size:11px;color:#6a6a73;margin-top:4px">
+    Якщо модель видасть помилку — звір точний слаг у LUMI → LLM Маркетплейс
+  </div>
+
+  <label>Системний промпт</label>
+  <textarea id="systemPromptInput" rows="4" placeholder="Напр.: Відповідай українською, коротко і по суті."></textarea>
+
+  <div class="row">
+    <button class="btn-clear" id="clearHistoryBtn">Очистити історію</button>
+    <button class="btn-save" id="saveSettingsBtn">Зберегти</button>
+  </div>
+</dialog>
+
+<script>
+const messagesEl = document.getElementById('messages');
+const inputEl = document.getElementById('input');
+const sendBtn = document.getElementById('sendBtn');
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsDialog = document.getElementById('settingsDialog');
+const secretInput = document.getElementById('secretInput');
+const systemPromptInput = document.getElementById('systemPromptInput');
+const modelSelect = document.getElementById('modelSelect');
+const currentModelTag = document.getElementById('currentModelTag');
+
+let history = JSON.parse(localStorage.getItem('chat_history') || '[]');
+let secret = localStorage.getItem('app_secret') || '';
+let systemPrompt = localStorage.getItem('system_prompt') || 'Ти корисний AI-асистент. Відповідай українською.';
+let model = localStorage.getItem('model') || 'claude-sonnet-5';
+
+function saveState() {
+  localStorage.setItem('chat_history', JSON.stringify(history));
+  localStorage.setItem('app_secret', secret);
+  localStorage.setItem('system_prompt', systemPrompt);
+  localStorage.setItem('model', model);
+}
+
+function updateModelTag() {
+  const opt = modelSelect.querySelector(`option[value="${model}"]`);
+  currentModelTag.textContent = opt ? opt.textContent : model;
+}
+
+function renderMessages() {
+  messagesEl.innerHTML = '';
+  history.forEach(m => appendBubble(m.role, m.content));
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function appendBubble(role, text, extraClass = '') {
+  const div = document.createElement('div');
+  div.className = `msg ${role} ${extraClass}`.trim();
+  div.textContent = text;
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  return div;
+}
+
+async function sendMessage() {
+  const text = inputEl.value.trim();
+  if (!text) return;
+  if (!secret) {
+    settingsDialog.showModal();
+    return;
   }
 
-  // --- Захист паролем, щоб сторонні не юзали твій LUMI-ключ ---
-  const secret = req.headers['x-app-secret'];
-  if (!process.env.APP_SECRET || secret !== process.env.APP_SECRET) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  history.push({ role: 'user', content: text });
+  appendBubble('user', text);
+  inputEl.value = '';
+  inputEl.style.height = 'auto';
+  saveState();
 
-  const { model, system, messages } = req.body || {};
-
-  if (!Array.isArray(messages) || messages.length === 0) {
-    return res.status(400).json({ error: 'messages[] required' });
-  }
-  if (!model) {
-    return res.status(400).json({ error: 'model required' });
-  }
-
-  const apiKey = process.env.LUMI_API_KEY;
-  const baseUrl = process.env.LUMI_BASE_URL || 'https://lumi.monobank.com.ua';
-
-  if (!apiKey) {
-    return res.status(500).json({ error: 'LUMI_API_KEY не налаштований' });
-  }
+  const typingBubble = appendBubble('assistant', 'друкує...', 'typing');
+  sendBtn.disabled = true;
 
   try {
-    const r = await fetch(`${baseUrl}/v1/chat/completions`, {
+    const res = await fetch('/api/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`
+        'x-app-secret': secret
       },
       body: JSON.stringify({
-        model, // TODO: звір точний слаг у LUMI → LLM Маркетплейс, якщо впаде 404
-        messages: [{ role: 'system', content: system }, ...messages],
-        temperature: 0.7
+        model,
+        system: systemPrompt,
+        messages: history
       })
     });
 
-    if (!r.ok) {
-      const errText = await r.text();
-      return res.status(r.status).json({ error: errText });
+    typingBubble.remove();
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      appendBubble('error', `Помилка: ${err.error || res.status}`);
+      return;
     }
 
-    const data = await r.json();
-    const reply = data.choices?.[0]?.message?.content ?? '(порожня відповідь)';
-    return res.status(200).json({ reply });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: 'Server error, try again' });
+    const data = await res.json();
+    history.push({ role: 'assistant', content: data.reply });
+    appendBubble('assistant', data.reply);
+    saveState();
+  } catch (e) {
+    typingBubble.remove();
+    appendBubble('error', 'Немає з\'єднання. Перевір VPN і спробуй ще раз.');
+  } finally {
+    sendBtn.disabled = false;
   }
 }
+
+sendBtn.addEventListener('click', sendMessage);
+inputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+inputEl.addEventListener('input', () => {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = inputEl.scrollHeight + 'px';
+});
+
+settingsBtn.addEventListener('click', () => {
+  secretInput.value = secret;
+  systemPromptInput.value = systemPrompt;
+  modelSelect.value = model;
+  settingsDialog.showModal();
+});
+
+document.getElementById('saveSettingsBtn').addEventListener('click', () => {
+  secret = secretInput.value.trim();
+  systemPrompt = systemPromptInput.value.trim() || systemPrompt;
+  model = modelSelect.value;
+  saveState();
+  updateModelTag();
+  settingsDialog.close();
+});
+
+document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+  if (confirm('Очистити всю історію чату?')) {
+    history = [];
+    saveState();
+    renderMessages();
+    settingsDialog.close();
+  }
+});
+
+renderMessages();
+updateModelTag();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
